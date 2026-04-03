@@ -1,0 +1,7 @@
+POST http://localhost:5000/analyze
+Content-Type: application/json
+
+{
+  "userSkills": ["HTML","CSS"],
+  "jobRole": "web developer"
+}

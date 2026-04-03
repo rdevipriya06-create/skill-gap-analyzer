@@ -1,0 +1,222 @@
+const express = require("express");
+const cors = require("cors");
+const OpenAI = require("openai");
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// ---------------- AI SETUP ----------------
+const openai = new OpenAI({
+    apiKey: "sk-proj-xxxxxxxxxxxx" // keep this safe
+});
+
+/* ---------------- JOB SKILLS ---------------- */
+const jobRoles = {
+    "web developer": ["HTML", "CSS", "JavaScript", "React", "Node.js"],
+    "data analyst": ["Excel", "SQL", "Python", "Power BI"],
+    "android developer": ["Java", "Kotlin", "Android Studio"],
+    "full stack developer": ["HTML", "CSS", "JavaScript", "React", "Node.js", "MongoDB"]
+};
+
+/* ---------------- ROADMAP ---------------- */
+const jobRoadmaps = {
+    "web developer": [
+        "Learn HTML basics",
+        "Learn CSS (Flexbox, Grid)",
+        "Learn JavaScript fundamentals",
+        "Understand DOM manipulation",
+        "Learn React",
+        "Learn Node.js & Express",
+        "Build full-stack projects"
+    ],
+
+    "data analyst": [
+        "Learn Excel",
+        "Learn SQL",
+        "Learn Python basics",
+        "Learn Pandas & NumPy",
+        "Learn Data Visualization",
+        "Work on real datasets"
+    ],
+
+    "android developer": [
+        "Learn Java/Kotlin",
+        "Learn Android Studio",
+        "Build UI layouts",
+        "Learn API integration",
+        "Build apps"
+    ],
+
+    "full stack developer": [
+        "Learn HTML & CSS",
+        "Learn JavaScript",
+        "Learn React",
+        "Learn Node.js",
+        "Learn MongoDB",
+        "Build full projects"
+    ]
+};
+
+/* ---------------- COURSES ---------------- */
+const courseData = {
+    "JavaScript": [
+        "JavaScript Basics - freeCodeCamp",
+        "JS Crash Course - YouTube"
+    ],
+    "React": [
+        "React Tutorial - freeCodeCamp",
+        "React Full Course - YouTube"
+    ],
+    "Node.js": [
+        "Node.js Basics - freeCodeCamp"
+    ],
+    "SQL": [
+        "SQL for Beginners - YouTube"
+    ],
+    "Python": [
+        "Python Basics - freeCodeCamp"
+    ]
+};
+
+/* ---------------- PROGRESS ---------------- */
+let progressData = {};
+
+/* ---------------- MAIN HYBRID API ---------------- */
+app.post("/analyze", async (req, res) => {
+    console.log("API HIT");
+
+    try {
+        const { userSkills, jobRole } = req.body;
+
+        if (!userSkills || !jobRole) {
+            return res.status(400).json({
+                error: "Provide userSkills and jobRole"
+            });
+        }
+
+        const role = jobRole.toLowerCase();
+
+        // ---------- STATIC LOGIC ----------
+        const jobSkills = jobRoles[role] || [];
+        const roadmapStatic = jobRoadmaps[role] || [];
+
+        const matched = userSkills.filter(skill =>
+            jobSkills.includes(skill)
+        );
+
+        const missing = jobSkills.filter(skill =>
+            !userSkills.includes(skill)
+        );
+
+        const fitScoreStatic = jobSkills.length
+            ? Math.round((matched.length / jobSkills.length) * 100)
+            : 0;
+
+        let finalResult = {
+            fitScore: fitScoreStatic,
+            matchedSkills: matched,
+            missingSkills: missing,
+            roadmap: roadmapStatic,
+            courses: []
+        };
+
+        // static courses
+        missing.forEach(skill => {
+            if (courseData[skill]) {
+                finalResult.courses.push({
+                    skill,
+                    courses: courseData[skill]
+                });
+            }
+        });
+
+        // ---------- AI TRY ----------
+        try {
+            console.log("Trying AI...");
+
+            const prompt = `
+            User wants to become ${jobRole}.
+            Current skills: ${userSkills.join(", ")}.
+
+            Return JSON:
+            {
+              fitScore: number,
+              missingSkills: [],
+              roadmap: [],
+              courses: []
+            }
+            `;
+
+            const response = await openai.chat.completions.create({
+                model: "gpt-4.1-mini",
+                messages: [{ role: "user", content: prompt }]
+            });
+
+            const aiText = response.choices[0].message.content;
+
+            const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                const aiData = JSON.parse(jsonMatch[0]);
+
+                finalResult.fitScore = aiData.fitScore || finalResult.fitScore;
+                finalResult.missingSkills = aiData.missingSkills || finalResult.missingSkills;
+                finalResult.roadmap = aiData.roadmap || finalResult.roadmap;
+                finalResult.courses = aiData.courses || finalResult.courses;
+            }
+
+            console.log("AI SUCCESS");
+
+        } catch (aiError) {
+            console.log("AI FAILED → Using static data");
+        }
+
+        res.json(finalResult);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            error: "Server error"
+        });
+    }
+});
+
+/* ---------------- PROGRESS ---------------- */
+app.post("/progress", (req, res) => {
+    const { skill, progress } = req.body;
+
+    if (!skill || progress === undefined) {
+        return res.status(400).json({
+            error: "Provide skill and progress"
+        });
+    }
+
+    progressData[skill] = progress;
+
+    res.json({
+        message: "Progress updated",
+        progressData
+    });
+});
+
+app.get("/progress", (req, res) => {
+    res.json(progressData);
+});
+
+/* ---------------- ROADMAP ---------------- */
+app.get("/roadmap/:job", (req, res) => {
+    const job = req.params.job.toLowerCase();
+    res.json(jobRoadmaps[job] || []);
+});
+
+/* ---------------- COURSES ---------------- */
+app.get("/courses/:skill", (req, res) => {
+    const skill = req.params.skill;
+    res.json(courseData[skill] || []);
+});
+
+/* ---------------- SERVER ---------------- */
+app.listen(5000, () => {
+    console.log("Server running on http://localhost:5000");
+});
