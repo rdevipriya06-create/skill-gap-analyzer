@@ -62,20 +62,57 @@ const jobRoadmaps = {
 const courseData = {
     "JavaScript": [
         "JavaScript Basics - freeCodeCamp",
-        "JS Crash Course - YouTube"
+        "JS Crash Course - YouTube",
+        "Modern JavaScript From The Beginning - Udemy"
     ],
     "React": [
         "React Tutorial - freeCodeCamp",
-        "React Full Course - YouTube"
+        "React Full Course - YouTube",
+        "Complete React Developer - Zero to Mastery"
     ],
     "Node.js": [
-        "Node.js Basics - freeCodeCamp"
+        "Node.js Basics - freeCodeCamp",
+        "Node.js API Development - YouTube"
     ],
     "SQL": [
-        "SQL for Beginners - YouTube"
+        "SQL for Beginners - YouTube",
+        "PostgreSQL Bootcamp - Udemy"
     ],
     "Python": [
-        "Python Basics - freeCodeCamp"
+        "Python Basics - freeCodeCamp",
+        "100 Days of Code: Complete Python Bootcamp - Udemy"
+    ],
+    "HTML": [
+        "HTML Crash Course For Absolute Beginners - YouTube",
+        "Responsive Web Design - freeCodeCamp"
+    ],
+    "CSS": [
+        "CSS Full Course - YouTube",
+        "CSS Grid & Flexbox Masterclass - Udemy"
+    ],
+    "MongoDB": [
+        "MongoDB Crash Course - YouTube",
+        "MongoDB Node.js integration - freeCodeCamp"
+    ],
+    "Excel": [
+        "Microsoft Excel - Excel from Beginner to Advanced - Udemy",
+        "Excel For Data Analytics - YouTube"
+    ],
+    "Power BI": [
+        "Power BI Full Course - YouTube",
+        "Getting Started with Power BI - Microsoft Learn"
+    ],
+    "Java": [
+        "Java Programming for Complete Beginners - Udemy",
+        "Java Full Course - freeCodeCamp"
+    ],
+    "Kotlin": [
+        "Kotlin Crash Course - YouTube",
+        "Android App Development with Kotlin - Udacity"
+    ],
+    "Android Studio": [
+        "Android Development for Beginners - freeCodeCamp",
+        "Build Your First Android App - YouTube"
     ]
 };
 
@@ -262,7 +299,7 @@ app.get("/progress", (req, res) => {
 /* ---------------- ROADMAP ---------------- */
 app.get("/roadmap/:role", (req, res) => {
     const role = req.params.role.toLowerCase();
-    
+
     if (!jobRoadmaps[role]) {
         return res.json([
             `Research daily tasks for ${role}`,
@@ -272,14 +309,14 @@ app.get("/roadmap/:role", (req, res) => {
             "Apply for full-time roles"
         ]);
     }
-    
+
     res.json(jobRoadmaps[role]);
 });
 
 /* ---------------- COURSES ---------------- */
 app.get("/courses/:skill", (req, res) => {
     const skill = req.params.skill;
-    
+
     if (!courseData[skill]) {
         return res.json([
             `Advanced ${skill} Masterclass on Udemy`,
