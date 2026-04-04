@@ -21,10 +21,22 @@ app.use(cors({
 app.use(express.json());
 
 // --- MONGODB CONNECTION (WORLD LAUNCH) ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/skillsync"; 
-mongoose.connect(MONGO_URI)
-    .then(() => console.log("✅ MongoDB Connected Successfully!"))
-    .catch(err => console.error("❌ MongoDB Connection Error:", err));
+const MONGO_URI = process.env.MONGODB_URI;
+
+if (!MONGO_URI) {
+    console.error("❌ CRITICAL ERROR: MONGODB_URI is missing from Environment Variables!");
+    console.error("Please add it to the Render Environment tab.");
+} else {
+    mongoose.connect(MONGO_URI)
+        .then(() => console.log("✅ MongoDB Connected Successfully!"))
+        .catch(err => {
+            console.error("❌ MongoDB Connection Error!");
+            console.error("Details:", err.message);
+            if (err.message.includes("authentication failed")) {
+                console.error("👉 TIP: Your database password in the URI might be wrong.");
+            }
+        });
+}
 
 // --- PERMANENT DATA MODEL ---
 const userSchema = new mongoose.Schema({
