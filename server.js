@@ -98,8 +98,14 @@ app.post("/analyze", async (req, res) => {
         const role = jobRole.toLowerCase();
 
         // ---------- STATIC LOGIC ----------
-    const jobSkills = jobRoles[role] || [];
-        const roadmapStatic = jobRoadmaps[role] || [];
+        let jobSkills = jobRoles[role] || ["Problem Solving", "Analytical Thinking", "Communication", "Project Management", "Technical Fundamentals"];
+        let roadmapStatic = jobRoadmaps[role] || [
+            "Research the specific skills for this role",
+            "Take fundamental online courses",
+            "Build a small portfolio project",
+            "Apply for an internship",
+            "Network with professionals"
+        ];
 
         const matched = userSkills.filter(skill =>
             jobSkills.includes(skill)
