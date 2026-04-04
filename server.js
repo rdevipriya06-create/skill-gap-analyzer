@@ -261,6 +261,31 @@ app.post("/auth/login", (req, res) => {
     }
 });
 
+/* ---------------- ADMIN PANEL (ONLY FOR YOU) ---------------- */
+app.get("/admin/users", (req, res) => {
+    const { secret } = req.query;
+    const MY_SECRET_KEY = "my-secret-admin-pass"; // ONLY YOU SHOULD KNOW THIS!
+
+    if (secret !== MY_SECRET_KEY) {
+        return res.status(403).send("<h1>Access Denied ❌</h1><p>You need the secret key to see this dashboard.</p>");
+    }
+
+    let html = `
+    <html>
+    <head><title>Admin Dashboard</title><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#4B6BFB;color:white}tr:nth-child(even){background-color:#f2f2f2}</style></head>
+    <body>
+        <h1>SkillSync AI User Database 🚀</h1>
+        <p>Total Registered: <strong>${usersDB.length}</strong></p>
+        <table>
+            <tr><th>Name</th><th>Email</th><th>Password</th></tr>
+            ${usersDB.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.password}</td></tr>`).join('')}
+        </table>
+    </body>
+    </html>
+    `;
+    res.send(html);
+});
+
 /* ---------------- AI CHAT (used by result.html chatbot) ---------------- */
 app.post("/ai-chat", async (req, res) => {
     const { message } = req.body;
