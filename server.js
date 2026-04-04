@@ -86,8 +86,8 @@ let progressData = {};
 app.post("/analyze", async (req, res) => {
     console.log("API HIT");
 
-  try {
-    const { userSkills, jobRole } = req.body;
+    try {
+        const { userSkills, jobRole } = req.body;
 
         if (!userSkills || !jobRole) {
             return res.status(400).json({
@@ -128,26 +128,26 @@ app.post("/analyze", async (req, res) => {
             ? Math.round((matched.length / jobSkills.length) * 100)
             : 0;
 
-    let finalResult = {
+        let finalResult = {
             fitScore: fitScoreStatic,
-      matchedSkills: matched,
-      missingSkills: missing,
+            matchedSkills: matched,
+            missingSkills: missing,
             roadmap: roadmapStatic,
             courses: []
-    };
+        };
 
         // static courses
-    missing.forEach(skill => {
-      if (courseData[skill]) {
+        missing.forEach(skill => {
+            if (courseData[skill]) {
                 finalResult.courses.push({
                     skill,
                     courses: courseData[skill]
                 });
-      }
-    });
+            }
+        });
 
         // ---------- AI TRY ----------
-      try {
+        try {
             console.log("Trying AI...");
 
             const prompt = `
@@ -163,17 +163,17 @@ app.post("/analyze", async (req, res) => {
             }
             `;
 
-        const response = await openai.chat.completions.create({
+            const response = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }]
-        });
+            });
 
-        const aiText = response.choices[0].message.content;
+            const aiText = response.choices[0].message.content;
 
-        const jsonMatch = aiText.match(/\{[\s\S]*\}/);
+            const jsonMatch = aiText.match(/\{[\s\S]*\}/);
 
-        if (jsonMatch) {
-          const aiData = JSON.parse(jsonMatch[0]);
+            if (jsonMatch) {
+                const aiData = JSON.parse(jsonMatch[0]);
 
                 finalResult.fitScore = aiData.fitScore || finalResult.fitScore;
                 finalResult.missingSkills = aiData.missingSkills || finalResult.missingSkills;
@@ -185,16 +185,16 @@ app.post("/analyze", async (req, res) => {
 
         } catch (aiError) {
             console.log("AI FAILED → Using static data");
-    }
+        }
 
-    res.json(finalResult);
+        res.json(finalResult);
 
-  } catch (err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({
             error: "Server error"
         });
-  }
+    }
 });
 
 /* ---------------- AI CHAT (used by result.html chatbot) ---------------- */
@@ -204,16 +204,16 @@ app.post("/ai-chat", async (req, res) => {
 
     // Smart keyword replies (work without OpenAI key)
     const replies = {
-        "salary":       "💰 Salaries vary by role. Frontend devs earn ₹4–15 LPA (India) / $60K–$120K (US). Data Scientists earn ₹6–25 LPA.",
-        "roadmap":      "🗺️ Visit roadmap.sh — free, community-built roadmaps for every tech career!",
-        "resume":       "📄 Keep resume to 1 page, use action verbs, quantify results (e.g. 'Improved speed by 40%'), add GitHub links.",
-        "interview":    "💼 Practice DSA on LeetCode, system design on YouTube, mock interviews on Pramp.com.",
-        "portfolio":    "🎨 Build 3 quality projects, deploy on Netlify/Vercel, host code on GitHub with good READMEs.",
-        "learn":        "📚 Best free resources: freeCodeCamp, The Odin Project, CS50 (Harvard), roadmap.sh",
-        "job":          "🎯 Apply on LinkedIn, Naukri, AngelList. A strong GitHub profile matters more than your degree!",
-        "python":       "🐍 Start with CS50P (Harvard, free) or freeCodeCamp's Python course. Great for AI/data science.",
-        "react":        "⚛️ Learn JavaScript first, then React. Use react.dev (official docs) — best resource available.",
-        "internship":   "🎓 Apply on Internshala, LinkedIn, AngelList. Even unpaid internships give great early experience.",
+        "salary": "💰 Salaries vary by role. Frontend devs earn ₹4–15 LPA (India) / $60K–$120K (US). Data Scientists earn ₹6–25 LPA.",
+        "roadmap": "🗺️ Visit roadmap.sh — free, community-built roadmaps for every tech career!",
+        "resume": "📄 Keep resume to 1 page, use action verbs, quantify results (e.g. 'Improved speed by 40%'), add GitHub links.",
+        "interview": "💼 Practice DSA on LeetCode, system design on YouTube, mock interviews on Pramp.com.",
+        "portfolio": "🎨 Build 3 quality projects, deploy on Netlify/Vercel, host code on GitHub with good READMEs.",
+        "learn": "📚 Best free resources: freeCodeCamp, The Odin Project, CS50 (Harvard), roadmap.sh",
+        "job": "🎯 Apply on LinkedIn, Naukri, AngelList. A strong GitHub profile matters more than your degree!",
+        "python": "🐍 Start with CS50P (Harvard, free) or freeCodeCamp's Python course. Great for AI/data science.",
+        "react": "⚛️ Learn JavaScript first, then React. Use react.dev (official docs) — best resource available.",
+        "internship": "🎓 Apply on Internshala, LinkedIn, AngelList. Even unpaid internships give great early experience.",
     };
 
     const msgLower = message.toLowerCase();
@@ -249,10 +249,10 @@ app.post("/progress", (req, res) => {
 
     progressData[skill] = progress;
 
-  res.json({
+    res.json({
         message: "Progress updated",
         progressData
-  });
+    });
 });
 
 app.get("/progress", (req, res) => {
@@ -260,15 +260,35 @@ app.get("/progress", (req, res) => {
 });
 
 /* ---------------- ROADMAP ---------------- */
-app.get("/roadmap/:job", (req, res) => {
-    const job = req.params.job.toLowerCase();
-    res.json(jobRoadmaps[job] || []);
+app.get("/roadmap/:role", (req, res) => {
+    const role = req.params.role.toLowerCase();
+    
+    if (!jobRoadmaps[role]) {
+        return res.json([
+            `Research daily tasks for ${role}`,
+            "Complete advanced online certifications",
+            "Contribute to open source projects",
+            "Prepare for technical interviews",
+            "Apply for full-time roles"
+        ]);
+    }
+    
+    res.json(jobRoadmaps[role]);
 });
 
 /* ---------------- COURSES ---------------- */
 app.get("/courses/:skill", (req, res) => {
-  const skill = req.params.skill;
-    res.json(courseData[skill] || []);
+    const skill = req.params.skill;
+    
+    if (!courseData[skill]) {
+        return res.json([
+            `Advanced ${skill} Masterclass on Udemy`,
+            `${skill} Certification on Coursera`,
+            `FreeCodeCamp ${skill} Crash Course`
+        ]);
+    }
+
+    res.json(courseData[skill]);
 });
 
 /* ---------------- SERVER ---------------- */
