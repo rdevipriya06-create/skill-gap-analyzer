@@ -107,16 +107,19 @@ app.post("/analyze", async (req, res) => {
             "Network with professionals"
         ];
 
+        const lowerJobSkills = jobSkills.map(s => s.toLowerCase());
+        const lowerUserSkills = userSkills.map(s => s.toLowerCase());
+
         const matched = userSkills.filter(skill =>
-            jobSkills.includes(skill)
+            lowerJobSkills.includes(skill.toLowerCase())
         );
 
         const missing = jobSkills.filter(skill =>
-            !userSkills.includes(skill)
+            !lowerUserSkills.includes(skill.toLowerCase())
         );
 
         const fitScoreStatic = jobSkills.length
-      ? Math.round((matched.length / jobSkills.length) * 100)
+            ? Math.round((matched.length / jobSkills.length) * 100)
             : 0;
 
     let finalResult = {
