@@ -11,7 +11,14 @@ const PORT = process.env.PORT || 10000;
 // --- PROFESSIONAL SECURITY HEADERS ---
 app.use(helmet({
     contentSecurityPolicy: false, 
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
+app.use(cors({
+    origin: "*", 
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+app.use(express.json());
 
 // --- MONGODB CONNECTION (WORLD LAUNCH) ---
 const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/skillsync"; 
@@ -27,9 +34,6 @@ const userSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const User = mongoose.model("User", userSchema);
-
-app.use(cors());
-app.use(express.json());
 
 // ---------------- AI SETUP ----------------
 const openai = new OpenAI({
