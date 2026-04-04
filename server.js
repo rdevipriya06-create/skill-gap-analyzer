@@ -239,19 +239,19 @@ const usersDB = []; // Tiny temporary database
 
 app.post("/auth/signup", (req, res) => {
     const { name, email, password } = req.body;
-    
+
     // Save to our temporary database
     usersDB.push({ name, email, password });
-    
+
     res.json({ token: "mock-token-123", name: name, email: email });
 });
 
 app.post("/auth/login", (req, res) => {
     const { email, password } = req.body;
-    
+
     // Find the user if they signed up recently
     const user = usersDB.find(u => u.email === email);
-    
+
     if (user) {
         res.json({ token: "mock-token-123", name: user.name, email: user.email });
     } else {
@@ -264,7 +264,7 @@ app.post("/auth/login", (req, res) => {
 /* ---------------- ADMIN PANEL (ONLY FOR YOU) ---------------- */
 app.get("/admin/users", (req, res) => {
     const { secret } = req.query;
-    const MY_SECRET_KEY = "my-secret-admin-pass"; // ONLY YOU SHOULD KNOW THIS!
+    const MY_SECRET_KEY = "my-secret-admin-pass"; 
 
     if (secret !== MY_SECRET_KEY) {
         return res.status(403).send("<h1>Access Denied ❌</h1><p>You need the secret key to see this dashboard.</p>");
@@ -272,14 +272,36 @@ app.get("/admin/users", (req, res) => {
 
     let html = `
     <html>
-    <head><title>Admin Dashboard</title><style>table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background-color:#4B6BFB;color:white}tr:nth-child(even){background-color:#f2f2f2}</style></head>
+    <head>
+        <title>Admin Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+            h1 { color: #4B6BFB; }
+            .table-container { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            table { border-collapse: collapse; width: 100%; min-width: 400px; }
+            th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+            th { background-color: #4B6BFB; color: white; }
+            tr:nth-child(even) { background-color: #f8f9ff; }
+            .pass-mask { color: #888; font-family: monospace; }
+        </style>
+    </head>
     <body>
         <h1>SkillSync AI User Database 🚀</h1>
-        <p>Total Registered: <strong>${usersDB.length}</strong></p>
-        <table>
-            <tr><th>Name</th><th>Email</th><th>Password</th></tr>
-            ${usersDB.map(u => `<tr><td>${u.name}</td><td>${u.email}</td><td>${u.password}</td></tr>`).join('')}
-        </table>
+        <p>Total Registered Users: <strong>${usersDB.length}</strong></p>
+        <div class="table-container">
+            <table>
+                <tr><th>#</th><th>Name</th><th>Email</th><th>Password</th></tr>
+                ${usersDB.map((u, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${u.name}</td>
+                        <td>${u.email}</td>
+                        <td class="pass-mask">••••••••</td>
+                    </tr>`).join('')}
+            </table>
+        </div>
+        <p style="margin-top:20px; font-size: 12px; color: gray;">Note: Passwords are masked for your browser's security protection.</p>
     </body>
     </html>
     `;
