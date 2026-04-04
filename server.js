@@ -234,6 +234,17 @@ app.post("/analyze", async (req, res) => {
     }
 });
 
+/* ---------------- AUTH (MOCK) ---------------- */
+app.post("/auth/signup", (req, res) => {
+    const { name, email, password } = req.body;
+    res.json({ token: "mock-token-123", name: name, email: email });
+});
+
+app.post("/auth/login", (req, res) => {
+    const { email, password } = req.body;
+    res.json({ token: "mock-token-123", name: "Student", email: email });
+});
+
 /* ---------------- AI CHAT (used by result.html chatbot) ---------------- */
 app.post("/ai-chat", async (req, res) => {
     const { message } = req.body;
