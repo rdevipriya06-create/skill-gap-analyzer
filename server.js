@@ -2,13 +2,19 @@ const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
 const mongoose = require("mongoose");
+const helmet = require("helmet");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
+// --- PROFESSIONAL SECURITY HEADERS ---
+app.use(helmet({
+    contentSecurityPolicy: false, 
+}));
+
 // --- MONGODB CONNECTION (WORLD LAUNCH) ---
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/skillsync"; // Fallback to local if URI not set
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/skillsync"; 
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ MongoDB Connected Successfully!"))
     .catch(err => console.error("❌ MongoDB Connection Error:", err));
@@ -258,14 +264,14 @@ const usersDB = []; // Tiny temporary database
 app.post("/auth/signup", async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        
+
         // 1. Check if user already exists
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ error: "Email already exists! Try logging in." });
 
         // 2. Create the permanent account
         const newUser = await User.create({ name, email, password });
-        
+
         console.log(`✨ New User Registered: ${name} (${email})`);
         res.json({ token: "permanent-token-xyz", name: newUser.name, email: newUser.email });
     } catch (err) {
@@ -277,14 +283,14 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
     try {
         const { email, password } = req.body;
-        
+
         // Find the user in the permanent database
         const user = await User.findOne({ email });
-        
+
         if (user) {
             // For now, simple password check (In real production, we'd use bcrypt)
             if (user.password !== password) return res.status(401).json({ error: "Incorrect password." });
-            
+
             res.json({ token: "permanent-token-xyz", name: user.name, email: user.email });
         } else {
             res.status(404).json({ error: "User not found. Please sign up first!" });
@@ -298,7 +304,7 @@ app.post("/auth/login", async (req, res) => {
 /* ---------------- ADMIN PANEL (ONLY FOR YOU) ---------------- */
 app.get("/admin/users", async (req, res) => {
     const { secret } = req.query;
-    const MY_SECRET_KEY = "my-secret-admin-pass"; 
+    const MY_SECRET_KEY = "my-secret-admin-pass";
 
     if (secret !== MY_SECRET_KEY) {
         return res.status(403).send("<h1>Access Denied ❌</h1><p>You need the secret key to see this dashboard.</p>");
