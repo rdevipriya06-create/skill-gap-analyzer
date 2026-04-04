@@ -287,21 +287,30 @@ app.post("/auth/signup", async (req, res) => {
 app.post("/auth/login", async (req, res) => {
     try {
         const { email, password } = req.body;
+        console.log(`🔍 Login attempt for: ${email}`);
 
+        // Ensure database is ready!
+        if (mongoose.connection.readyState !== 1) {
+            console.error("❌ Database not connected yet!");
+            return res.status(503).json({ error: "Database starting up... please wait 30 seconds." });
+        }
+        
         // Find the user in the permanent database
         const user = await User.findOne({ email });
-
+        
         if (user) {
             // For now, simple password check (In real production, we'd use bcrypt)
             if (user.password !== password) return res.status(401).json({ error: "Incorrect password." });
-
+            
+            console.log(`✅ Login Success: ${user.name}`);
             res.json({ token: "permanent-token-xyz", name: user.name, email: user.email });
         } else {
-            res.status(404).json({ error: "User not found. Please sign up first!" });
+            console.log(`❌ User Not Found: ${email}`);
+            res.status(404).json({ error: "User not found. Please sign up FIRST to create your new cloud account!" });
         }
     } catch (err) {
-        console.error("Login error:", err);
-        res.status(500).json({ error: "Server error during login." });
+        console.error("💀 Login error details:", err.message);
+        res.status(500).json({ error: "Server error during login. Make sure you set your MONGODB_URI on Render!" });
     }
 });
 
