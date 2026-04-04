@@ -155,7 +155,7 @@ app.post("/analyze", async (req, res) => {
             `;
 
         const response = await openai.chat.completions.create({
-                model: "gpt-4.1-mini",
+                model: "gpt-4o-mini",
                 messages: [{ role: "user", content: prompt }]
         });
 
@@ -215,7 +215,7 @@ app.post("/ai-chat", async (req, res) => {
     // Try OpenAI if key is real
     try {
         const response = await openai.chat.completions.create({
-            model: "gpt-4.1-mini",
+            model: "gpt-4o-mini",
             messages: [
                 { role: "system", content: "You are a helpful career advisor for tech students. Give concise, practical advice in 2-3 sentences." },
                 { role: "user", content: message }
