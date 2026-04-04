@@ -98,14 +98,20 @@ app.post("/analyze", async (req, res) => {
         const role = jobRole.toLowerCase();
 
         // ---------- STATIC LOGIC ----------
-        let jobSkills = jobRoles[role] || ["Problem Solving", "Analytical Thinking", "Communication", "Project Management", "Technical Fundamentals"];
-        let roadmapStatic = jobRoadmaps[role] || [
-            "Research the specific skills for this role",
-            "Take fundamental online courses",
-            "Build a small portfolio project",
-            "Apply for an internship",
-            "Network with professionals"
-        ];
+        let jobSkills = jobRoles[role];
+        let roadmapStatic = jobRoadmaps[role];
+
+        // If the job role is not in our specific list, create a smart adaptive fallback
+        if (!jobSkills) {
+            jobSkills = [...userSkills, "System Design", "Cloud Deployment", "Advanced Debugging", "Security Best Practices"];
+            roadmapStatic = [
+                `Research daily tasks for a ${jobRole}`,
+                "Complete advanced online certifications",
+                "Contribute to open source projects",
+                "Prepare for technical interviews",
+                "Apply for full-time roles"
+            ];
+        }
 
         const lowerJobSkills = jobSkills.map(s => s.toLowerCase());
         const lowerUserSkills = userSkills.map(s => s.toLowerCase());
