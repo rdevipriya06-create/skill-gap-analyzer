@@ -1,8 +1,27 @@
 const express = require("express");
 const cors = require("cors");
 const OpenAI = require("openai");
+const mongoose = require("mongoose");
+require("dotenv").config();
 
 const app = express();
+const PORT = process.env.PORT || 10000;
+
+// --- MONGODB CONNECTION (WORLD LAUNCH) ---
+const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/skillsync"; // Fallback to local if URI not set
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ MongoDB Connected Successfully!"))
+    .catch(err => console.error("❌ MongoDB Connection Error:", err));
+
+// --- PERMANENT DATA MODEL ---
+const userSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model("User", userSchema);
+
 app.use(cors());
 app.use(express.json());
 
@@ -236,33 +255,48 @@ app.post("/analyze", async (req, res) => {
 
 /* ---------------- AUTH (MOCK DB) ---------------- */
 const usersDB = []; // Tiny temporary database
+app.post("/auth/signup", async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        
+        // 1. Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(400).json({ error: "Email already exists! Try logging in." });
 
-app.post("/auth/signup", (req, res) => {
-    const { name, email, password } = req.body;
-
-    // Save to our temporary database
-    usersDB.push({ name, email, password });
-
-    res.json({ token: "mock-token-123", name: name, email: email });
+        // 2. Create the permanent account
+        const newUser = await User.create({ name, email, password });
+        
+        console.log(`✨ New User Registered: ${name} (${email})`);
+        res.json({ token: "permanent-token-xyz", name: newUser.name, email: newUser.email });
+    } catch (err) {
+        console.error("Signup error:", err);
+        res.status(500).json({ error: "Could not create account in database." });
+    }
 });
 
-app.post("/auth/login", (req, res) => {
-    const { email, password } = req.body;
-
-    // Find the user if they signed up recently
-    const user = usersDB.find(u => u.email === email);
-
-    if (user) {
-        res.json({ token: "mock-token-123", name: user.name, email: user.email });
-    } else {
-        // If the server restarted, guess their name from their email just to be nice!
-        const guessedName = email.split('@')[0];
-        res.json({ token: "mock-token-123", name: guessedName, email: email });
+app.post("/auth/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        // Find the user in the permanent database
+        const user = await User.findOne({ email });
+        
+        if (user) {
+            // For now, simple password check (In real production, we'd use bcrypt)
+            if (user.password !== password) return res.status(401).json({ error: "Incorrect password." });
+            
+            res.json({ token: "permanent-token-xyz", name: user.name, email: user.email });
+        } else {
+            res.status(404).json({ error: "User not found. Please sign up first!" });
+        }
+    } catch (err) {
+        console.error("Login error:", err);
+        res.status(500).json({ error: "Server error during login." });
     }
 });
 
 /* ---------------- ADMIN PANEL (ONLY FOR YOU) ---------------- */
-app.get("/admin/users", (req, res) => {
+app.get("/admin/users", async (req, res) => {
     const { secret } = req.query;
     const MY_SECRET_KEY = "my-secret-admin-pass"; 
 
@@ -270,42 +304,50 @@ app.get("/admin/users", (req, res) => {
         return res.status(403).send("<h1>Access Denied ❌</h1><p>You need the secret key to see this dashboard.</p>");
     }
 
-    let html = `
-    <html>
-    <head>
-        <title>Admin Dashboard</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-            h1 { color: #4B6BFB; }
-            .table-container { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-            table { border-collapse: collapse; width: 100%; min-width: 400px; }
-            th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-            th { background-color: #4B6BFB; color: white; }
-            tr:nth-child(even) { background-color: #f8f9ff; }
-            .pass-mask { color: #888; font-family: monospace; }
-        </style>
-    </head>
-    <body>
-        <h1>SkillSync AI User Database 🚀</h1>
-        <p>Total Registered Users: <strong>${usersDB.length}</strong></p>
-        <div class="table-container">
-            <table>
-                <tr><th>#</th><th>Name</th><th>Email</th><th>Password</th></tr>
-                ${usersDB.map((u, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${u.name}</td>
-                        <td>${u.email}</td>
-                        <td class="pass-mask">••••••••</td>
-                    </tr>`).join('')}
-            </table>
-        </div>
-        <p style="margin-top:20px; font-size: 12px; color: gray;">Note: Passwords are masked for your browser's security protection.</p>
-    </body>
-    </html>
-    `;
-    res.send(html);
+    try {
+        // Fetch all users from the actual database
+        const allUsers = await User.find().sort({ createdAt: -1 });
+
+        let html = `
+        <html>
+        <head>
+            <title>Admin Dashboard</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+                h1 { color: #4B6BFB; }
+                .table-container { overflow-x: auto; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+                table { border-collapse: collapse; width: 100%; min-width: 400px; }
+                th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
+                th { background-color: #4B6BFB; color: white; }
+                tr:nth-child(even) { background-color: #f8f9ff; }
+                .pass-mask { color: #888; font-family: monospace; }
+            </style>
+        </head>
+        <body>
+            <h1>SkillSync AI User Database 🚀 (Live MongoDB)</h1>
+            <p>Total Registered Users: <strong>${allUsers.length}</strong></p>
+            <div class="table-container">
+                <table>
+                    <tr><th>#</th><th>Date Joined</th><th>Name</th><th>Email</th><th>Password</th></tr>
+                    ${allUsers.map((u, index) => `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                            <td>${u.name}</td>
+                            <td>${u.email}</td>
+                            <td class="pass-mask">••••••••</td>
+                        </tr>`).join('')}
+                </table>
+            </div>
+            <p style="margin-top:20px; font-size: 12px; color: gray;">Note: These users are permanently stored in your MongoDB Atlas cloud.</p>
+        </body>
+        </html>
+        `;
+        res.send(html);
+    } catch (err) {
+        res.status(500).send("Error fetching users from database.");
+    }
 });
 
 /* ---------------- AI CHAT (used by result.html chatbot) ---------------- */
