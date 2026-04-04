@@ -234,15 +234,31 @@ app.post("/analyze", async (req, res) => {
     }
 });
 
-/* ---------------- AUTH (MOCK) ---------------- */
+/* ---------------- AUTH (MOCK DB) ---------------- */
+const usersDB = []; // Tiny temporary database
+
 app.post("/auth/signup", (req, res) => {
     const { name, email, password } = req.body;
+    
+    // Save to our temporary database
+    usersDB.push({ name, email, password });
+    
     res.json({ token: "mock-token-123", name: name, email: email });
 });
 
 app.post("/auth/login", (req, res) => {
     const { email, password } = req.body;
-    res.json({ token: "mock-token-123", name: "Student", email: email });
+    
+    // Find the user if they signed up recently
+    const user = usersDB.find(u => u.email === email);
+    
+    if (user) {
+        res.json({ token: "mock-token-123", name: user.name, email: user.email });
+    } else {
+        // If the server restarted, guess their name from their email just to be nice!
+        const guessedName = email.split('@')[0];
+        res.json({ token: "mock-token-123", name: guessedName, email: email });
+    }
 });
 
 /* ---------------- AI CHAT (used by result.html chatbot) ---------------- */
